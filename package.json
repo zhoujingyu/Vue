@@ -1,0 +1,20 @@
+{
+  "name": "vue",
+  "version": "1.0.0",
+  "description": "vue!",
+  "main": "index.js",
+  "scripts": {
+    "dev": "webpack --mode development --watch"
+  },
+  "keywords": [
+    "vue"
+  ],
+  "author": "zhou",
+  "license": "ISC",
+  "dependencies": {
+    "webpack": "^5.37.0"
+  },
+  "devDependencies": {
+    "webpack-cli": "^4.7.0"
+  }
+}
