@@ -1,14 +1,18 @@
 import { initState } from './state'
-import { mountComponent, callHook } from './lifecycle'
+import { mountComponent, initLifecycle, callHook } from './lifecycle'
+import { initRender } from './render'
 import { compileToFunctions } from '../compiler'
 import Watcher from '../observer/watcher'
 import { mergeOptions } from '../util'
+
+let uid = 0
 
 /**
  * Created by 不羡仙 on 2021/5/13 下午 03:12
  * 描述：初始化
  */
 export function initMixin(Vue) {
+  // TODO 移到state里
   Vue.prototype.$watch = function (exprOrFn, cb, options) {
     const vm = this
     new Watcher(vm, exprOrFn, cb, {
@@ -17,6 +21,7 @@ export function initMixin(Vue) {
     })
   }
 
+  // TODO 源码不在这里
   Vue.prototype.$mount = function (el) {
     const vm = this
     const options = vm.$options
@@ -44,9 +49,27 @@ export function initMixin(Vue) {
 
   Vue.prototype._init = function (options) {
     const vm = this
-    // 这里的this代表调用_init方法的对象(实例对象)
-    // this.$options就是用户new Vue的时候传入的属性
-    vm.$options = mergeOptions(vm.constructor.options, options)
+    vm.uid = uid++
+    // 一个防止vm实例自身被观察的标志位
+    vm._isVue = true
+    // expose real self
+    vm._self = vm
+
+    if (options && options._isComponent) {
+      // 优化内部组件实例化
+      // 因为动态选项合并非常慢
+      // 并且没有任何内部组件选项需要特殊处理。
+      initInternalComponent(vm, options)
+    } else {
+      // TODO mergeOptions的实现需要修改
+      vm.$options = mergeOptions(resolveConstructorOptions(vm.constructor), options || {}, vm)
+    }
+
+    // 初始化生命周期
+    initLifecycle(vm)
+    // TODO 初始化事件
+    // 初始化渲染
+    initRender(vm)
     callHook(vm, 'beforeCreate')
     // 初始化状态
     initState(vm)
@@ -56,4 +79,27 @@ export function initMixin(Vue) {
       vm.$mount(vm.$options.el)
     }
   }
+}
+
+function initInternalComponent(vm, options) {
+  const opts = vm.$options = Object.create(vm.constructor.options)
+  // 这样做是因为它比动态枚举更快。
+  // TODO 这些字段都是啥？？？
+  opts.parent = options.parent
+  opts.propsData = options.propsData
+  opts._parentVnode = options._parentVnode
+  opts._parentListeners = options._parentListeners
+  opts._renderChildren = options._renderChildren
+  opts._componentTag = options._componentTag
+  opts._parentElm = options._parentElm
+  opts._refElm = options._refElm
+  if (options.render) {
+    opts.render = options.render
+    opts.staticRenderFns = options.staticRenderFns
+  }
+}
+
+function resolveConstructorOptions(Ctor) {
+  return Ctor.options
+  // TODO 源码处理得比较复杂，有空理解了再加上
 }

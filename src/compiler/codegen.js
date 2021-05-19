@@ -81,6 +81,6 @@ export function generate(node) {
   const children = getChildren(node)
   const { tag: tagName, attrs } = node
   const data = attrs.length ? genProps(attrs) : 'undefined'
-  const later = children ? `,${children}` : ''
+  const later = children ? `,[${children}]` : ''
   return `_c('${tagName}', ${data}${later})`
 }

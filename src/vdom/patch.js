@@ -5,7 +5,7 @@
 export function patch(oldVnode, vnode) {
   if (!oldVnode) {
     // 组件的创建过程是没有el属性的
-    return createElement(vnode)
+    return createElm(vnode)
   }
   // 判断传入的oldVnode是否是一个真实元素
   // 这里很关键，初次渲染，传入的vm.$el就是咱们传入的el选项，所以是真实dom
@@ -16,7 +16,7 @@ export function patch(oldVnode, vnode) {
     const oldElement = oldVnode
     const parentElement = oldElement.parentNode
     // 将虚拟dom转化成真实dom节点
-    const el = createElement(vnode)
+    const el = createElm(vnode)
     // 插入到老的el节点下一个节点的前面，就相当于插入到老的el节点的后面
     // 这里不直接使用父元素appendChild是为了不破坏替换的位置
     parentElement.replaceChild(el, oldElement)
@@ -26,7 +26,7 @@ export function patch(oldVnode, vnode) {
   // oldVnode是虚拟dom，就是更新过程，使用diff算法
   if (oldVnode.tag !== vnode.tag) {
     // 如果新旧标签不一致，用新的替换旧的，oldVnode.el代表的是真实dom节点--同级比较
-    oldVnode.el.parentNode.replaceChild(createElement(vnode), oldVnode.el)
+    oldVnode.el.parentNode.replaceChild(createElm(vnode), oldVnode.el)
   } else if (!oldVnode.tag && !vnode.tag && oldVnode.text !== vnode.text) {
     // 如果旧节点是一个文本节点
     oldVnode.el.textContent = vnode.text
@@ -46,7 +46,7 @@ export function patch(oldVnode, vnode) {
     } else if (newChildren.length) {
       // 老的没有，新的有儿子
       for (let i = 0; i < newChildren.length; i++) {
-        el.appendChild(createElement(newChildren[i]))
+        el.appendChild(createElm(newChildren[i]))
       }
     }
   }
@@ -70,7 +70,7 @@ function createComponent(vnode) {
 /**
  * 描述：虚拟dom转成真实dom，就是调用原生方法生成dom树
  */
-function createElement(vnode) {
+function createElm(vnode) {
   const { tag, data, key, children, text } = vnode
   if (typeof tag === 'string') {
     if (createComponent(vnode)) {
@@ -83,7 +83,7 @@ function createElement(vnode) {
     updateProperties(vnode)
     // 如果有子节点就递归插入到父节点里面
     children.forEach((child) => {
-      vnode.el.appendChild(createElement(child))
+      vnode.el.appendChild(createElm(child))
     })
   } else {
     // 文本节点
@@ -188,7 +188,7 @@ function updateChildren(parent, oldCh, newCh) {
       const moveIndex = map[newStartVnode.key]
       if (moveIndex === undefined) {
         // 老的节点找不到，直接插入
-        parent.insertBefore(createElement(newStartVnode), oldStartVnode.el)
+        parent.insertBefore(createElm(newStartVnode), oldStartVnode.el)
       } else {
         const moveVnode = oldCh[moveIndex] // 找得到就拿到老的节点
         oldCh[moveIndex] = undefined // 这个是占位操作，避免数组塌陷，防止老节点移动走了之后破坏了初始的映射表位置
@@ -203,7 +203,7 @@ function updateChildren(parent, oldCh, newCh) {
     newEndVnode = newCh[newEndIndex + 1]
     for (let i = newStartIndex; i <= newEndIndex; i++) {
       const ele = newEndVnode ? newEndVnode.el : null
-      parent.insertBefore(createElement(newCh[i]), ele)
+      parent.insertBefore(createElm(newCh[i]), ele)
     }
   }
 

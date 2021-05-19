@@ -1,4 +1,4 @@
-import { nextTick } from '../util/next-tick'
+import { nextTick } from '../util'
 
 let queue = []
 let has = new Set()

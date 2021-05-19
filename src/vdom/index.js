@@ -1,4 +1,14 @@
-import { isObject, isReservedTag } from '../util'
+import {
+  isObject,
+  isPrimitive,
+  RESERVED_TAGS,
+} from '../util'
+
+// 判断是不是常规html标签
+const reservedTagSet = new Set(RESERVED_TAGS)
+function isReservedTag(tagName) {
+  return reservedTagSet.has(tagName)
+}
 
 /**
  * Created by 不羡仙 on 2021/5/14 上午 11:23
@@ -9,9 +19,19 @@ export default class Vnode {
     this.tag = tag
     this.data = data
     this.key = key
-    this.children = children
+    this.children = children || []
     this.text = text
   }
+}
+
+/**
+ * 描述：创建一个空vnode节点
+ */
+export function createEmptyVnode() {
+  const vnode = new Vnode()
+  vnode.text = ''
+  vnode.isComment = true
+  return vnode
 }
 
 function createComponent(vm, tag, data, key, children, Ctor) {
@@ -40,8 +60,16 @@ function createComponent(vm, tag, data, key, children, Ctor) {
 
 /**
  * 描述：创建元素vnode，等于render函数里面的h=>h(App)
+ * TODO 源码是6个参数
  */
-export function createElement(vm, tag, data = {}, ...children) {
+export function createElement(vm, tag, data, children, normalizationType) {
+  // 兼容不传data的情况
+  if (Array.isArray(data) || isPrimitive(data)) {
+    normalizationType = children
+    children = data
+    data = undefined
+  }
+  data = data || {}
   const { key } = data
   if (isReservedTag(tag)) {
     // 如果是普通标签

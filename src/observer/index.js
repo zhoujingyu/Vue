@@ -2,13 +2,23 @@ import { arrayMethods } from './array'
 import Dep from './dep'
 import {
   isObject,
+  isPlainObject,
   hasOwn,
 } from '../util'
 
 /**
+ * 描述：默认情况下，当一个无效的属性被设置时，新的值也会被转换成无效的。
+ * 不管怎样，当传递props时，我们不需要进行强制转换
+ */
+export const observerState = {
+  shouldConvert: true,
+  isSettingProps: false,
+}
+
+/**
  * 描述：响应式数据核心方法
  */
-function defineReactive(data, key, value) {
+export function defineReactive(data, key, value) {
   const property = Object.getOwnPropertyDescriptor(data, key)
   if (property && !property.configurable) {
     return
@@ -187,11 +197,13 @@ export function observe(data) {
     // 如果已有Observer实例则直接返回该Observer实例
     ob = data.__ob__
   } else if (
-    (Object.prototype.toString.call(data) === '[object Object]' || Array.isArray(data)) &&
+    observerState.shouldConvert &&
+    (isPlainObject(data) || Array.isArray(data)) &&
     Object.isExtensible(data)
   ) {
     // 如果传过来的是对象或者数组，进行属性劫持
     ob = new Observer(data)
   }
+  // TODO 忽略根数据计数，不知道干啥的
   return ob
 }
