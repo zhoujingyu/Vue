@@ -7,7 +7,10 @@ import {
 } from '../observer'
 import Watcher from '../observer/watcher'
 import Dep from '../observer/dep'
-import { noop, validateProp } from '../util'
+import {
+  noop,
+  validateProp,
+} from '../util'
 
 // 作为定义的描述符，传入Object.defineProperty后，get、set对应的函数是不会变的
 const sharedPropertyDefinition = {
@@ -63,6 +66,12 @@ function initProps(vm) {
  * 描述：初始化methods
  */
 function initMethods(vm) {
+  const { methods } = vm.$options
+  if (methods) {
+    for (let key in methods) {
+      vm[key] = methods[key] == null ? noop : methods[key].bind(vm)
+    }
+  }
 }
 
 /**

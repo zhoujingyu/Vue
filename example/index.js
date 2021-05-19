@@ -117,9 +117,9 @@ const vm = new Vue({
     },
   },
   watch: {
-    name(newVal, oldVal) {
-      console.log('name', newVal, oldVal)
-    },
+    // name(newVal, oldVal) {
+    //   console.log('name', newVal, oldVal)
+    // },
     // name: {
     //   handler(newVal, oldVal) {
     //     console.log('name', newVal, oldVal)
@@ -127,7 +127,7 @@ const vm = new Vue({
     //   deep: true,
     //   immediate: true,
     // },
-    // name: 'nameHandler', // TODO 未实现initMethods
+    name: 'nameHandler', // TODO 未实现initMethods
     // name: [{
     //   handler(newVal, oldVal) {
     //     console.log('name', newVal, oldVal)
@@ -137,13 +137,17 @@ const vm = new Vue({
   },
   methods: {
     nameHandler(newVal, oldVal) {
-      console.log('name', newVal, oldVal)
-    }
+      console.log('methods nameHandler', newVal, oldVal)
+    },
+    speak() {
+      console.log('i am the king of the world!')
+    },
   },
   beforeCreate() {
     console.log('beforeCreate')
   },
   created() {
+    this.speak()
     console.log('created')
   },
   beforeMount() {
