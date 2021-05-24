@@ -1,3 +1,19 @@
+import Vnode from './'
+import {
+  isUndef,
+  cached,
+} from '../util'
+
+const emptyNode = new Vnode('', {})
+
+// 这些模块是不需要初始化的或者已经在客户端被渲染了
+const isRenderedModule = (() => {
+  const set = new Set('attrs,style,class,staticClass,staticStyle,key'.split(','))
+  return (key) => {
+    return set.has(key)
+  }
+})()
+
 /**
  * Created by 不羡仙 on 2021/5/14 上午 11:33
  * 描述：patch用来渲染和更新视图
@@ -75,19 +91,24 @@ function createElm(vnode) {
   if (typeof tag === 'string') {
     if (createComponent(vnode)) {
       // 如果是组件，返回真实组件渲染的真实dom
-      return vnode.el = vnode.componentInstance.$el
+      vnode.el = vnode.componentInstance.$el
+    } else {
+      // 虚拟dom的el属性指向真实dom
+      vnode.el = document.createElement(tag)
+      // 解析虚拟dom属性
+      updateProperties(vnode)
+      // 如果有子节点就递归插入到父节点里面
+      children.forEach((child) => {
+        vnode.el.appendChild(createElm(child))
+      })
     }
-    // 虚拟dom的el属性指向真实dom
-    vnode.el = document.createElement(tag)
-    // 解析虚拟dom属性
-    updateProperties(vnode)
-    // 如果有子节点就递归插入到父节点里面
-    children.forEach((child) => {
-      vnode.el.appendChild(createElm(child))
-    })
   } else {
     // 文本节点
     vnode.el = document.createTextNode(text)
+  }
+
+  if (data) {
+    updateDOMListeners(emptyNode, vnode)
   }
   return vnode.el
 }
@@ -215,4 +236,107 @@ function updateChildren(parent, oldCh, newCh) {
       }
     }
   }
+}
+
+/**
+ * 更新监听事件
+ * @param oldVnode
+ * @param vnode
+ */
+function updateDOMListeners(oldVnode, vnode) {
+  if (isUndef(oldVnode.data.on) && isUndef(vnode.data.on)) {
+    return
+  }
+  const on = vnode.data.on || {}
+  const oldOn = oldVnode.data.on || {}
+  updateListeners(on, oldOn, vnode.el)
+}
+
+/**
+ * 更新监听事件
+ * @param on
+ * @param oldOn
+ * @param el
+ */
+function updateListeners (on, oldOn, el) {
+  let name, cur, old, event
+  /*遍历新事件的所有方法*/
+  for (name in on) {
+    cur = on[name]
+    old = oldOn[name]
+
+    /*取得并去除事件的~、!、&等前缀*/
+    event = normalizeEvent(name)
+    /*isUndef用于判断传入对象不等于undefined或者null*/
+    if (isUndef(cur)) {
+      // no
+    } else if (isUndef(old)) {
+      if (isUndef(cur.fns)) {
+        /*createFnInvoker返回一个函数，该函数的作用是将生成时的fns执行，如果fns是数组，则便利执行它的每一项*/
+        cur = on[name] = createFnInvoker(cur)
+      }
+      addListener(el, event.name, cur, event.once, event.capture, event.passive)
+    } else if (cur !== old) {
+      old.fns = cur
+      on[name] = old
+    }
+  }
+  /*移除所有旧的事件*/
+  for (name in oldOn) {
+    if (isUndef(on[name])) {
+      event = normalizeEvent(name)
+      removeListener(el, event.name, oldOn[name], event.capture)
+    }
+  }
+}
+
+function addListener(el, eventName, handler, once, capture, passive) {
+  if (once) {
+    const oldHandler = handler
+    handler = function (ev) {
+      const res = arguments.length === 1
+      ? oldHandler(ev)
+      : oldHandler.apply(null, arguments)
+      if (res !== null) {
+        removeListener(el, eventName, handler, capture)
+      }
+    }
+  }
+  el.addEventListener(eventName, handler, { capture, passive })
+}
+
+function removeListener(el, eventName, handler, capture) {
+  el.removeEventListener(eventName, handler, capture)
+}
+
+const normalizeEvent = cached((name) => {
+  const passive = name.charAt(0) === '&'
+  name = passive ? name.slice(1) : name
+  const once = name.charAt(0) === '~' // Prefixed last, checked first
+  name = once ? name.slice(1) : name
+  const capture = name.charAt(0) === '!'
+  name = capture ? name.slice(1) : name
+  return {
+    name,
+    once,
+    capture,
+    passive
+  }
+})
+
+/*返回一个函数，该函数的作用是将生成时的fns执行，如果fns是数组，则便利执行它的每一项*/
+export function createFnInvoker (fns) {
+  function invoker () {
+    const fns = invoker.fns
+    if (Array.isArray(fns)) {
+      for (let i = 0; i < fns.length; i++) {
+        fns[i].apply(null, arguments)
+      }
+    } else {
+      // return handler return value for single handlers
+      return fns.apply(null, arguments)
+    }
+  }
+  invoker.fns = fns
+  return invoker
 }

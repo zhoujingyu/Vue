@@ -60,15 +60,21 @@ const vm = new Vue({
     // TODO 文本中间的空格被移除了
     'child-component': {
       template: `
-        <div class="child">
-          <p>我是局部组件: {{ name }}</p>
+        <div class="child" @click="handleClick">
+          <p>我是局部组件：{{ name }}</p>
           <p>下面的小东西</p>
         </div>
       `,
+      props: ['content'],
       data() {
         return {
           name: '哈哈哈',
         }
+      },
+      methods: {
+        handleClick() {
+          console.warn('别碰我！！！', this)
+        },
       },
       beforeCreate() {
         console.log('child beforeCreate')
@@ -102,7 +108,7 @@ const vm = new Vue({
       <p class="name">{{ content }}</p>
       <p class="describe">爱好：{{ hobby.join('、') }}</p>
       <parent-component></parent-component>
-      <child-component></child-component>
+      <child-component :content="content"></child-component>
     </div>
   `,
   data() {
@@ -127,7 +133,7 @@ const vm = new Vue({
     //   deep: true,
     //   immediate: true,
     // },
-    name: 'nameHandler', // TODO 未实现initMethods
+    name: 'nameHandler',
     // name: [{
     //   handler(newVal, oldVal) {
     //     console.log('name', newVal, oldVal)

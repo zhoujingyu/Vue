@@ -1,4 +1,4 @@
-import { hasOwn } from './'
+import { hasOwn, hyphenate } from './'
 import { observe, observerState } from '../observer'
 
 /**

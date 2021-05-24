@@ -71,14 +71,17 @@ export function createElement(vm, tag, data, children, normalizationType) {
   }
   data = data || {}
   const { key } = data
+  let vnode
   if (isReservedTag(tag)) {
     // 如果是普通标签
-    return new Vnode(tag, data, key, children)
+    vnode = new Vnode(tag, data, key, children)
   } else {
     // 否则就是组件
     const Ctor = vm.$options.components[tag]
-    return createComponent(vm, tag, data, key, children, Ctor)
+    vnode = createComponent(vm, tag, data, key, children, Ctor)
   }
+  vnode.context = vm
+  return vnode
 }
 
 /**

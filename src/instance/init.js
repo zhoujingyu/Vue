@@ -1,5 +1,6 @@
 import { initState } from './state'
 import { mountComponent, initLifecycle, callHook } from './lifecycle'
+import { initEvents } from './events'
 import { initRender } from './render'
 import { compileToFunctions } from '../compiler'
 import Watcher from '../observer/watcher'
@@ -67,7 +68,8 @@ export function initMixin(Vue) {
 
     // 初始化生命周期
     initLifecycle(vm)
-    // TODO 初始化事件
+    // 初始化事件
+    initEvents(vm)
     // 初始化渲染
     initRender(vm)
     callHook(vm, 'beforeCreate')
