@@ -12,6 +12,8 @@ const modifierRE = /\.[^.]+/g // 根据点来分开各个级别的正则，比�
 const bindRE = /^:|^v-bind:/ // 匹配v-bind以及:
 const onRE = /^@|^v-on:/ // 匹配@以及v-on，绑定事件
 const argRE = /:(.*)$/ // 匹配参数，比如:task="currentTask"解析后可以得到task="currentTask"
+const forAliasRE = /(.*?)\s+(?:in|of)\s+(.*)/ // 匹配v-for中的in以及of
+const forIteratorRE = /\((\{[^}]*\}|[^,]*),([^,]*)(?:,([^,]*))?\)/ // v-for参数中带括号的情况匹配，比如(item, index)这样的参数
 
 // 标识元素和文本type，同HTML DOM nodeType 属性
 const ELEMENT_TYPE = 1
@@ -26,9 +28,18 @@ function createASTElement(tagName, attrsList) {
     type: ELEMENT_TYPE,
     children: [],
     attrsList,
+    attrsMap: makeAttrsMap(attrsList),
     attrs: [],
     parent: null,
   }
+}
+
+function makeAttrsMap (attrs) {
+  const map = {}
+  for (let i = 0; i < attrs.lengt; i++) {
+    map[attrs[i].name] = attrs[i].value
+  }
+  return map
 }
 
 /**
@@ -44,6 +55,7 @@ export function parse(html) {
    */
   function startTagHandler({ tagName, attrsList }) {
     const element = createASTElement(tagName, attrsList)
+    processFor(element)
     processAttrs(element)
     if (!root) {
       root = element
@@ -157,6 +169,67 @@ export function parse(html) {
   }
 
   return root
+}
+
+/**
+ * 从ele的属性中获取name对应的值并将它从中删除
+ * @param el
+ * @param name
+ * @returns {*}
+ */
+function getAndRemoveAttr (el, name) {
+  let val
+  if ((val = el.attrsMap[name]) != null) {
+    const list = el.attrsList
+    for (let i = 0, l = list.length; i < l; i++) {
+      if (list[i].name === name) {
+        list.splice(i, 1)
+        break
+      }
+    }
+  }
+  return val
+}
+
+/**
+ * 匹配v-for属性
+ * @param el
+ */
+function processFor (el) {
+  let exp
+  // 取出v-for属性
+  if ((exp = getAndRemoveAttr(el, 'v-for'))) {
+    // 匹配v-for中的in以及of 以item in sz为例 inMatch = [ 'item of sz', 'item', 'sz', index: 0, input: 'item of sz' ]
+    const inMatch = exp.match(forAliasRE)
+    // 匹配失败则在非生产环境中打印v-for的无效表达式
+    if (!inMatch) {
+      return
+    }
+    // 在这里是sz
+    el.for = inMatch[2].trim()
+    // item
+    const alias = inMatch[1].trim()
+    /*
+      因为item可能是被括号包裹的，比如(item, index) in sz这样的形式，匹配出这些项
+      例：(item, index)匹配得到结果
+      [ '(item, index, l)',
+      'item',
+      ' index',
+      l,
+      index: 0,
+      input: '(item, index, l);' ]
+    */
+    const iteratorMatch = alias.match(forIteratorRE)
+    if (iteratorMatch) {
+      el.alias = iteratorMatch[1].trim()
+      el.iterator1 = iteratorMatch[2].trim()
+      if (iteratorMatch[3]) {
+        el.iterator2 = iteratorMatch[3].trim()
+      }
+    } else {
+      el.alias = alias
+    }
+  }
 }
 
 /**

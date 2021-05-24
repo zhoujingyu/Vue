@@ -56,8 +56,6 @@ Vue.component('parent-component', {
 const vm = new Vue({
   el: '#app',
   components: {
-    // TODO 局部组件没有创建对应的构造器，在数据更新时会重新渲染
-    // TODO 文本中间的空格被移除了
     'child-component': {
       template: `
         <div class="child" @click="handleClick">
@@ -107,6 +105,7 @@ const vm = new Vue({
       <h1 class="header">手写Vue</h1>
       <p class="name">{{ content }}</p>
       <p class="describe">爱好：{{ hobby.join('、') }}</p>
+      <p><span v-for="(h, index) in hobby" :key="index">{{ h }}</span></p>
       <parent-component></parent-component>
       <child-component :content="content"></child-component>
     </div>
